@@ -1,40 +1,38 @@
 import React from 'react';
 import { DAYS, TIME_SLOTS } from '../constants';
-import { ScheduleData, DayOfWeek, TimeSlot, LocksMap } from '../types';
-import { Edit2, Trash2, Lock } from 'lucide-react';
-import { getLockForSlot } from '../services/firebaseService';
+import { ScheduleMap, DayOfWeek, TimeSlot } from '../types';
+import { Edit2, Trash2 } from 'lucide-react';
 
 interface ScheduleTableProps {
-  schedule: ScheduleData;
-  locks: LocksMap;
-  currentUid: string;
+  schedule: ScheduleMap;
   onCellClick: (day: DayOfWeek, time: TimeSlot) => void;
   onDelete: (day: DayOfWeek, time: TimeSlot) => void;
 }
 
-export const ScheduleTable: React.FC<ScheduleTableProps> = ({ schedule, locks, currentUid, onCellClick, onDelete }) => {
-
+export const ScheduleTable: React.FC<ScheduleTableProps> = ({ schedule, onCellClick, onDelete }) => {
+  
   const getCellData = (day: DayOfWeek, time: TimeSlot) => {
-    return schedule[day]?.[time];
+    return schedule[`${day}::${time}`];
   };
 
+  // Helper to generate a consistent pastel color based on string
   const stringToColor = (str: string) => {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       hash = str.charCodeAt(i) + ((hash << 5) - hash);
     }
     const hue = hash % 360;
-    return `hsla(${hue}, 70%, 90%, 1)`;
+    return `hsla(${hue}, 70%, 90%, 1)`; // Pastel background
   };
 
   const stringToBorder = (str: string) => {
-    let hash = 0;
+     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       hash = str.charCodeAt(i) + ((hash << 5) - hash);
     }
     const hue = hash % 360;
-    return `hsla(${hue}, 60%, 40%, 0.3)`;
-  };
+    return `hsla(${hue}, 60%, 40%, 0.3)`; 
+  }
 
   return (
     <div className="overflow-hidden rounded-xl border border-gray-200 shadow-sm bg-white">
@@ -61,68 +59,43 @@ export const ScheduleTable: React.FC<ScheduleTableProps> = ({ schedule, locks, c
                 {DAYS.map((day) => {
                   const data = getCellData(day, time);
                   const isOccupied = !!data;
-                  const lock = getLockForSlot(locks, day, time);
-                  const isLockedByOther = lock !== null && lock.lockedBy !== currentUid;
-
+                  
                   return (
-                    <td
-                      key={`${day}-${time}`}
-                      className={`p-2 border border-gray-100 align-top h-32 transition-colors group relative ${
-                        isLockedByOther
-                          ? 'cursor-not-allowed'
-                          : 'hover:bg-gray-100 cursor-pointer'
-                      }`}
-                      onClick={() => {
-                        if (!isLockedByOther) onCellClick(day, time);
-                      }}
+                    <td 
+                      key={`${day}-${time}`} 
+                      className="p-2 border border-gray-100 align-top h-32 hover:bg-gray-100 transition-colors cursor-pointer group relative"
+                      onClick={() => onCellClick(day, time)}
                     >
-                      {/* Lock overlay */}
-                      {isLockedByOther && (
-                        <div className="absolute inset-0 bg-gray-200/60 z-10 flex items-center justify-center rounded">
-                          <div className="flex flex-col items-center gap-1 text-gray-500">
-                            <Lock size={16} />
-                            <span className="text-xs font-medium">{lock.displayName}</span>
-                            <span className="text-xs">編輯中...</span>
-                          </div>
-                        </div>
-                      )}
-
                       {isOccupied ? (
-                        <div
-                          className="h-full w-full rounded-lg p-3 flex flex-col gap-1 shadow-sm transition-all hover:shadow-md relative overflow-hidden group-hover:-translate-y-1 duration-200"
-                          style={{
-                            backgroundColor: stringToColor(data.className),
-                            border: `1px solid ${stringToBorder(data.className)}`
-                          }}
+                        <div 
+                            className="h-full w-full rounded-lg p-3 flex flex-col gap-1 shadow-sm transition-all hover:shadow-md relative overflow-hidden group-hover:-translate-y-1 duration-200"
+                            style={{ 
+                                backgroundColor: stringToColor(data.className),
+                                border: `1px solid ${stringToBorder(data.className)}`
+                            }}
                         >
-                          {/* Actions overlay */}
-                          {!isLockedByOther && (
+                            {/* Actions overlay */}
                             <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 bg-white/50 backdrop-blur-sm rounded-md p-1">
-                              <button
-                                onClick={(e) => { e.stopPropagation(); onDelete(day, time); }}
-                                className="p-1 hover:bg-red-100 text-red-500 rounded"
-                                title="刪除"
-                              >
-                                <Trash2 size={14} />
-                              </button>
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); onDelete(day, time); }}
+                                    className="p-1 hover:bg-red-100 text-red-500 rounded"
+                                    title="刪除"
+                                >
+                                    <Trash2 size={14} />
+                                </button>
                             </div>
-                          )}
 
-                          <div className="font-bold text-gray-800 text-base leading-tight">
-                            {data.className}
-                          </div>
-                          {data.activity && (
-                            <div className="text-sm text-gray-600 italic bg-white/40 p-1 rounded mt-auto">
-                              {data.activity}
-                            </div>
-                          )}
+                           <div className="font-bold text-gray-800 text-base leading-tight">
+                             {data.className}
+                           </div>
+                           {data.activity && (
+                             <div className="text-sm text-gray-600 italic bg-white/40 p-1 rounded mt-auto">
+                               {data.activity}
+                             </div>
+                           )}
                         </div>
                       ) : (
-                        <div className={`h-full w-full rounded-lg border-2 border-dashed flex items-center justify-center transition-colors ${
-                          isLockedByOther
-                            ? 'border-gray-200 text-gray-300'
-                            : 'border-gray-200 text-gray-300 group-hover:border-kinder-secondary group-hover:text-kinder-secondary'
-                        }`}>
+                        <div className="h-full w-full rounded-lg border-2 border-dashed border-gray-200 flex items-center justify-center text-gray-300 group-hover:border-kinder-secondary group-hover:text-kinder-secondary transition-colors">
                           <div className="flex flex-col items-center">
                             <Edit2 size={16} />
                             <span className="text-xs mt-1 font-medium">預約</span>
