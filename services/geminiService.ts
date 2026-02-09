@@ -1,22 +1,21 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { ScheduleMap, ScheduleEntry } from "../types";
+import { ScheduleData, ScheduleEntry, DayOfWeek, TimeSlot } from "../types";
 import { DAYS, TIME_SLOTS } from "../constants";
 
 const apiKey = process.env.API_KEY || '';
 
 const ai = new GoogleGenAI({ apiKey });
 
-export const generateScheduleSuggestions = async (currentSchedule: ScheduleMap): Promise<ScheduleMap> => {
+export const generateScheduleSuggestions = async (currentSchedule: ScheduleData): Promise<ScheduleData> => {
   if (!apiKey) {
     throw new Error("API Key is missing");
   }
 
-  // Construct a prompt that understands the current state
   const currentJson = JSON.stringify(currentSchedule);
 
   const prompt = `
     You are an expert kindergarten physical education coordinator for "臺南市立新市幼兒園".
-    
+
     We have a schedule for the "Outdoor Physical Fitness Area" (戶外體能場).
     The schedule grid has days: ${DAYS.join(', ')} and time slots: ${TIME_SLOTS.join(', ')}.
 
@@ -27,11 +26,10 @@ export const generateScheduleSuggestions = async (currentSchedule: ScheduleMap):
     2. Fill ONLY the empty slots with realistic kindergarten class names (e.g., "大班-向日葵", "中班-小星星", "小班-綿羊") and fun, safe outdoor physical activities (e.g., "滑梯探險", "障礙賽跑", "球類遊戲").
     3. Do NOT overwrite existing slots that already have data.
     4. Ensure variety in activities.
-    
+
     Return a flat array of objects representing the NEW entries for the empty slots.
   `;
 
-  // Define response schema
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
     contents: prompt,
@@ -59,19 +57,18 @@ export const generateScheduleSuggestions = async (currentSchedule: ScheduleMap):
   });
 
   const generatedData = JSON.parse(response.text || '{"newEntries": []}');
-  
-  // Merge new entries into a copy of the current schedule
-  const newSchedule: ScheduleMap = { ...currentSchedule };
+
+  const newSchedule: ScheduleData = { ...currentSchedule };
 
   if (generatedData.newEntries && Array.isArray(generatedData.newEntries)) {
     generatedData.newEntries.forEach((item: any) => {
-        const key = `${item.day}::${item.timeSlot}`;
-        // Double check we aren't overwriting just in case
-        if (!newSchedule[key]) {
-            newSchedule[key] = {
+        const day = item.day as DayOfWeek;
+        const time = item.timeSlot as TimeSlot;
+        if (!newSchedule[day]?.[time]) {
+            if (!newSchedule[day]) newSchedule[day] = {};
+            newSchedule[day]![time] = {
                 className: item.className,
                 activity: item.activity,
-                isAiSuggested: true
             };
         }
     });
@@ -84,8 +81,8 @@ export const suggestActivityForSlot = async (day: string, time: string, classNam
      if (!apiKey) return "自由探索";
 
      const prompt = `
-        Suggest one fun, safe, specific outdoor physical activity for a kindergarten class named "${className}" 
-        on ${day} at ${time}. 
+        Suggest one fun, safe, specific outdoor physical activity for a kindergarten class named "${className}"
+        on ${day} at ${time}.
         Keep it under 10 words. In Traditional Chinese.
      `;
 

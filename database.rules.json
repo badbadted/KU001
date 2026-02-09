@@ -1,0 +1,30 @@
+{
+  "rules": {
+    "schedule": {
+      "$day": {
+        "$timeSlot": {
+          ".read": true,
+          ".write": "auth != null"
+        }
+      }
+    },
+    "locks": {
+      "$slotKey": {
+        ".read": true,
+        ".write": "auth != null && (!data.exists() || data.child('lockedBy').val() === auth.uid || data.child('lockedAt').val() < now - 120000)"
+      }
+    },
+    "users": {
+      "$uid": {
+        ".read": true,
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    },
+    "presence": {
+      "$uid": {
+        ".read": true,
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    }
+  }
+}
