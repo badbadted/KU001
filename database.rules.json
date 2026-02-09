@@ -1,28 +1,22 @@
 {
   "rules": {
     "schedule": {
-      "$day": {
-        "$timeSlot": {
-          ".read": true,
-          ".write": "auth != null"
-        }
-      }
+      ".read": true,
+      ".write": "auth != null"
     },
     "locks": {
-      "$slotKey": {
-        ".read": true,
-        ".write": "auth != null && (!data.exists() || data.child('lockedBy').val() === auth.uid || data.child('lockedAt').val() < now - 120000)"
-      }
+      ".read": true,
+      ".write": "auth != null"
     },
     "users": {
+      ".read": true,
       "$uid": {
-        ".read": true,
         ".write": "auth != null && auth.uid === $uid"
       }
     },
     "presence": {
+      ".read": true,
       "$uid": {
-        ".read": true,
         ".write": "auth != null && auth.uid === $uid"
       }
     }
